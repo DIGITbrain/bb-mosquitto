@@ -1,0 +1,173 @@
+---
+# Source: mosquitto/templates/tests/test-connection.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "mosquitto-test-connection"
+  labels:
+    app.kubernetes.io/name: mosquitto
+    helm.sh/chart: mosquitto-0.2.0
+    app.kubernetes.io/instance: mosquitto
+    app.kubernetes.io/version: "1.6.10"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    "helm.sh/hook": test-success
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args:  ['mosquitto:']
+  restartPolicy: Never
+---
+# Source: mosquitto/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mosquitto
+  labels:
+    app.kubernetes.io/name: mosquitto
+    helm.sh/chart: mosquitto-0.2.0
+    app.kubernetes.io/instance: mosquitto
+    app.kubernetes.io/version: "1.6.10"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: mosquitto/templates/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mosquitto
+  labels:
+    app.kubernetes.io/name: mosquitto
+    helm.sh/chart: mosquitto-0.2.0
+    app.kubernetes.io/instance: mosquitto
+    app.kubernetes.io/version: "1.6.10"
+    app.kubernetes.io/managed-by: Helm
+data:
+  client.key: <CLIENT_KEY>
+---
+# Source: mosquitto/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mosquitto
+  labels:
+    app.kubernetes.io/name: mosquitto
+    helm.sh/chart: mosquitto-0.2.0
+    app.kubernetes.io/instance: mosquitto
+    app.kubernetes.io/version: "1.6.10"
+    app.kubernetes.io/managed-by: Helm
+data:
+  mosquitto.conf: |
+    # Config file for mosquitto
+    #
+    # See mosquitto.conf(5) for more information.
+    #
+    # Default values are shown, uncomment to change.
+    #
+    # Use the # character to indicate a comment, but only if it is the
+    # very first character on the line.
+    connection <CONNECTION_NAME>
+    address <HOST>:<PORT>
+    bridge_insecure true
+    bridge_cafile /mosquitto/config/ca.crt
+    bridge_certfile /mosquitto/config/client.crt
+    bridge_keyfile /mosquitto/secret/client.key
+    topic <TOPIC1>/# in
+
+
+  ca.crt: |
+    <CERTIFICATE>
+
+  client.crt: |
+    <CERTIFICATE>
+
+---
+# Source: mosquitto/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mosquitto
+  labels:
+    app.kubernetes.io/name: mosquitto
+    helm.sh/chart: mosquitto-0.2.0
+    app.kubernetes.io/instance: mosquitto
+    app.kubernetes.io/version: "1.6.10"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 1883
+      targetPort: default
+      protocol: TCP
+      name: default
+    - port: 9001
+      targetPort: websocket
+      protocol: TCP
+      name: websocket
+  selector:
+    app.kubernetes.io/name: mosquitto
+    app.kubernetes.io/instance: mosquitto
+---
+# Source: mosquitto/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mosquitto
+  labels:
+    app.kubernetes.io/name: mosquitto
+    helm.sh/chart: mosquitto-0.2.0
+    app.kubernetes.io/instance: mosquitto
+    app.kubernetes.io/version: "1.6.10"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mosquitto
+      app.kubernetes.io/instance: mosquitto
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mosquitto
+        app.kubernetes.io/instance: mosquitto
+    spec:
+      serviceAccountName: mosquitto
+      securityContext:
+        {}
+      containers:
+        - name: mosquitto
+          securityContext:
+            {}
+          image: "eclipse-mosquitto:1.6.10"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: default
+              containerPort: 1883
+              protocol: TCP
+            - name: websocket
+              containerPort: 9001
+              protocol: TCP
+          livenessProbe:
+            tcpSocket:
+              port: default
+          readinessProbe:
+            tcpSocket:
+              port: default
+          resources:
+            {}
+          volumeMounts:
+            - name: configmap
+              mountPath: /mosquitto/config
+
+            - name: secret
+              mountPath: /mosquitto/secret
+
+      volumes:
+        - name: configmap
+          configMap:
+            name: mosquitto
+
+        - name: secret
+          secret:
+            secretName: mosquitto
