@@ -1,0 +1,22 @@
+# docker build -t mqtt:2.0.14 .
+# docker run -d --rm --name mqtt -e USERNAME=db -e PASSWORD=db -p 10000:1883 mqtt:2.0.14
+
+FROM eclipse-mosquitto:2.0.14
+
+RUN mkdir /mosquitto/certs && chown mosquitto:mosquitto /mosquitto/certs
+
+COPY $PWD/certificates/ca.pem /mosquitto/certs/
+COPY $PWD/certificates/server-cert.pem /mosquitto/certs/
+COPY $PWD/certificates/server-key.pem /mosquitto/certs/
+RUN chown -R  mosquitto:mosquitto /mosquitto/certs/*
+RUN chmod 600 /mosquitto/certs/*
+
+COPY $PWD/mosquitto.conf /mosquitto/config/mosquitto.conf
+
+RUN touch /mosquitto/passwords && chown mosquitto:mosquitto /mosquitto/passwords && chmod 600 /mosquitto/passwords
+
+COPY $PWD/start.sh /mosquitto/
+RUN chown mosquitto:mosquitto /mosquitto/start.sh && chmod +x /mosquitto/start.sh
+
+ENTRYPOINT ["/mosquitto/start.sh"]
+CMD ["/usr/sbin/mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]
