@@ -1,7 +1,7 @@
-# docker build -t mqtt:2.0.14 .
-# docker run -d --rm --name mqtt -e USERNAME=db -e PASSWORD=db -p 10000:1883 mqtt:2.0.14
+# docker build -t mqtt:2.0.17 .
+# docker run -d --rm --name mqtt -e USERNAME=db -e PASSWORD=db -p 10000:1883 mqtt:2.0.17
 
-FROM eclipse-mosquitto:2.0.14
+FROM eclipse-mosquitto:2.0.17
 
 RUN mkdir /mosquitto/certs && chown mosquitto:mosquitto /mosquitto/certs
 

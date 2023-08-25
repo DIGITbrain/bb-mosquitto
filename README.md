@@ -14,7 +14,7 @@ Eclipse Public License 2.0
 
 ## Version
 
-Latest
+2.0.17
 
 ## Description
 
